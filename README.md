@@ -8,7 +8,7 @@ The web map retrieves data from an knowledge graph accessible via a SPARQL endpo
 
 An example knowledge graph containing the gazetted placenames for Australia, structured using the FSDF Placename ontology can be downloaded from the [RMIT Geographic Knowledge Lab](http://gkl.rmit.melbourne) below:
 
-[Placenames Australia knowledge graph](http://gkl.rmit.melbourne/kg/pnkg_2025_03_18.ttl)
+- [Placenames Australia knowledge graph](http://gkl.rmit.melbourne/kg/pnkg_2025_03_18.ttl)
 
 You can verify your SPARQL endpoint is working correctly by running a simple SPARQL query on the created knowledge graph, such as below. 
 
@@ -30,5 +30,5 @@ LIMIT 100
 
 The kgwebmap is based on an updated version of the EPFL DHLAB [leaflet-sparql](https://github.com/dhlab-epfl/leaflet-sparql) repo converted to MapLibre. 
 
-[kgwebmap html file](kgwebmap.html)
+- [kgwebmap html file](kgwebmap.html)
 
