@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>kgwebmap: Simple Knowledge Graph Web Map</title>
+	<meta property="og:description" content="A very simple MapLibre web mapping SPARQL interface to a knowledge graph containing GeoSPARQL geometries." />
+	<meta charset='utf-8'>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	
+	<!-- MapLibre CSS and JS -->
+	<link rel='stylesheet' href='https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.css' />
+	<script src='https://unpkg.com/maplibre-gl@5.2.0/dist/maplibre-gl.js'></script>
+
+	<!-- JQUERY general javascript helper library -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+
+	<!-- JQUERY GEO to transform from WKT to GEOJSON -->
+	<script src="jquery.geo.js"></script>
+
+	<style>
+		body {margin: 0; padding: 0;}
+		html, body,
+		#map {
+			height: 92%;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="map"></div>
+	<br />
+	<table style="width: 100%">
+		<tr>
+			<td style="width: 33%">
+				<h4>Query</h4>
+				<textarea id="query" style="width: 100%" rows="6" spellcheck="false">
+PREFIX pn: <http://linked.data.gov.au/def/placenames/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#> 
+SELECT  ?loc ?geom ?name ?category
+WHERE   {
+        ?loc geo:asWKT ?geom .
+        ?place geo:hasGeometry ?loc .
+        ?place pn:hasPlaceClassification ?category .
+        ?place pn:hasPlaceName ?plnm .
+        ?plnm pn:name ?name
+}
+LIMIT 100
+			</textarea>
+			</td>
+			<td style="width: 33%">
+				<h4>Result raw</h4>
+				<textarea id="result_raw" style="width: 100%" rows="6" readonly="readonly" spellcheck="false">no result</textarea>
+			</td>
+			<td style="width: 33%">
+				<h4>Result geojson</h4>
+				<textarea id="result_geojson" style="width: 100%" rows="6" readonly="readonly" spellcheck="false">no result</textarea>
+			</td>
+		</tr>
+	</table>
+
+	<script>
+	
+		// Create MapLibre map centred on Australia
+		const map = new maplibregl.Map({
+			container: 'map',
+			style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+			center: [133.583, -27.833],
+			zoom: 4
+		});
+		
+		// Set the SPARQL end point
+		var endPoint = 'http://localhost:3030/PlacenamesAustralia';
+		var defaultGraphUri = '';
+
+		// When a click event occurs on a feature in the places layer, open a popup at the
+		// location of the feature, with description HTML from its properties.
+		map.on('click', 'places', (e) => {
+			const coordinates = e.features[0].geometry.coordinates.slice();
+			const description = e.features[0].properties.category;
+			// Ensure that if the map is zoomed out such that multiple
+			// copies of the feature are visible, the popup appears
+			// over the copy being pointed to.
+			while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+				coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+			}
+			new maplibregl.Popup()
+				.setLngLat(coordinates)
+				.setHTML(description)
+				.addTo(map);
+		});
+		
+		// Click on the SPARQL raw result or geojson text areas to execute the SPARQL and reload the map
+		$(document).ready(function() {
+			$('#result_raw').click(function() {
+				map.removeLayer('places');
+				map.removeSource('places');
+				reloadContent();
+			});
+			$('#result_geojson').click(function() {
+				map.removeLayer('places');
+				map.removeSource('places');
+				reloadContent();
+			});
+		});
+		
+		// Initialize the map load 
+		map.on('load', async () => {
+			// Add an image to use as a custom marker
+			const image = await map.loadImage('https://api.geoapify.com/v1/icon/?type=circle&color=%2384b3d8&icon=info&iconType=material&strokeColor=%23000000&noShadow&noWhiteCircle&scaleFactor=0.7&apiKey=988956953d9d43018f66968a4a8ede5c');
+			map.addImage('custom-marker', image.data);
+			// Add a GeoJSON source with 15 points
+			reloadContent();
+		});
+		
+		// Execution and loading of the AJAX query to the SPARQL endpoint
+		function reloadContent() {
+
+			// Retrieve SPARQL query from the text area
+			var sparqlQ = $('#query').val()
+			
+			// Make an AJAX query to the SPARQL endpoint
+			$.ajax({
+				url: endPoint,
+				data: {
+					'query': sparqlQ,
+					'default-graph-uri': defaultGraphUri
+				},
+				dataType: 'json'
+			}).success(function(data) {
+				// If the query succeeds ... 
+				// ... Display raw results 
+				$('#result_raw').text(JSON.stringify(data));
+				
+				// .. And formatted geojson
+				var geojson = {
+					type: 'FeatureCollection',
+					features: []
+				};
+				$.each(data.results.bindings, function(i, bindings) {
+					feature = {
+						type: "Feature",
+						geometry: $.geo.WKT.parse(bindings.geom.value),
+						properties: {}
+					};
+					// We add each sparql variable to the geojson properties object
+					$.each(data.head.vars, function(j, property) {
+						if (property != 'geom')
+							feature.properties[property] = bindings[property].value;
+					});
+					geojson.features.push(feature);
+				});
+				$('#result_geojson').text(JSON.stringify(geojson, null, 4));
+
+				// Add the retrieved data as a new map source
+				map.addSource('places', {
+					'type': 'geojson',
+					'data': geojson,
+				});
+				
+				// Add the new map source as a map layer
+				map.addLayer({
+					'id': 'places',
+					'type': 'symbol',
+					'source': 'places',
+					'layout': {
+						'icon-image': 'custom-marker',
+						'text-field': ['get', 'name'],
+						'text-font': [
+							'Open Sans Semibold',
+							'Arial Unicode MS Bold'
+						],
+						'text-offset': [0, 1.25],
+						'text-anchor': 'top'
+					}
+				});
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				// If the query fails, we display the error
+				$('#result_raw').text("Failure: \n\n" + errorThrown + "\n" + jqXHR.responseText);
+				$('#result_geojson').text("");
+			});
+		}
+	</script>
+</body>
+
+</html>
