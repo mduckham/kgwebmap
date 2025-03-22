@@ -1,5 +1,7 @@
 # kgwebmap: Knowledge Graph Web Map
-A very simple MapLibre web mapping SPARQL interface to a knowledge graph containing GeoSPARQL geometries. 
+A very simple MapLibre web mapping SPARQL interface to a knowledge graph containing GeoSPARQL geometries.
+
+ ![kgwebmap example](kgwebmap.png)
 
 ## SPARQL knowledge graph
 The web map retrieves data from an knowledge graph accessible via a SPARQL endpoint. 
