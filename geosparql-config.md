@@ -35,11 +35,10 @@ PREFIX geosparql: <http://jena.apache.org/geosparql#>
 
 <#geo_ds> rdf:type geosparql:geosparqlDataset ;
     geosparql:spatialIndexFile "YOURPATH/geosparql_fuseki/fuseki_env/databases/PlacenamesAus/spatial.index";
-    geosparql:dataset <#baseDataset> ;.
+    geosparql:dataset <#baseDataset> .
 
 <#baseDataset> rdf:type tdb2:DatasetTDB2 ;
-    tdb2:location YOURPATH/geosparql_fuseki/fuseki_env/databases/PlacenamesAus/" ;
-    .
+    tdb2:location YOURPATH/geosparql_fuseki/fuseki_env/databases/PlacenamesAus/" .
 ```
 
 5.	Download the GeoSPARQL binary files (from [https://repo1.maven.org/maven2/org/apache/jena/jena-geosparql/](https://repo1.maven.org/maven2/org/apache/jena/jena-geosparql/)) and place both jar files in `fuseki_env/extra`
