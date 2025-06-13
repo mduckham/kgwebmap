@@ -14,6 +14,8 @@ The following guide provides some guidance on correctly configuring the Apache F
 -	`data > GeoDB`
 -	`extra`
 
+![Fuseki directory structure](fuseki-directory.png)
+
 4.	Create a configuration file as follows and place it in the `configuration` folder. To automatically create a folder inside `fuseki_env`,
 provide proper names that match the datasets, such as `PlacenameAus`.
 
